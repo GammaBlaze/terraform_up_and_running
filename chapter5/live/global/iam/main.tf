@@ -41,3 +41,8 @@ resource "aws_iam_user_policy_attachment" "neo_cloudwatch_read_only" {
   user       = aws_iam_user.example[0].name
   policy_arn = aws_iam_policy.cloudwatch_read_only.arn
 }
+
+/*resource "aws_iam_user" "existing_user" {
+  # Make sure to update this to your own user name!
+  name = "james"
+}*/

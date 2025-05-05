@@ -7,7 +7,7 @@ terraform {
 }
 
 module "webserver_cluster" {
-  source = "github.com/GammaBlaze/modules//services/webserver-cluster?ref=v0.0.1"
+  source = "../../../../modules/services/webserver-cluster"
 
   cluster_name           = "webservers-prod"
   db_remote_state_bucket = "the-bucket-residence-state"
