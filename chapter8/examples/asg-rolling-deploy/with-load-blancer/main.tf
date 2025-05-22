@@ -1,38 +1,33 @@
+provider "aws" {
+  region = "us-east-2"
+}
+
 module "asg" {
-  source = "../../cluster/asg-rolling-deploy"
+  source = "../../../modules/cluster/asg-rolling-deploy"
 
-  cluster_name  = "hello-world-${var.environment}"
-  ami           = var.ami
-  instance_type = var.instance_type
+  cluster_name  = var.cluster_name
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    server_port = var.server_port
-    db_address  = data.terraform_remote_state.db.outputs.primary_address
-    db_port     = data.terraform_remote_state.db.outputs.primary_port
-    server_text = var.server_text
-  }))
-
-  min_size           = var.min_size
-  max_size           = var.max_size
-  enable_autoscaling = var.enable_autoscaling
+  min_size           = 1
+  max_size           = 4
+  enable_autoscaling = true
 
   subnet_ids        = data.aws_subnets.default.ids
   target_group_arns = [aws_lb_target_group.asg.arn]
   health_check_type = "ELB"
-
-  custom_tags = var.custom_tags
 }
 
 module "alb" {
-  source = "../../networking/alb"
+  source = "../../../modules/networking/alb"
 
-  alb_name   = "hello-world-${var.environment}"
+  alb_name   = var.alb_name
   subnet_ids = data.aws_subnets.default.ids
 }
 
 resource "aws_lb_target_group" "asg" {
-  name     = "hello-world-${var.environment}"
-  port     = var.server_port
+  name     = var.alb_name
+  port     = 80
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.default.id
 
@@ -60,5 +55,27 @@ resource "aws_lb_listener_rule" "asg" {
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.asg.arn
+  }
+}
+
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
 }
