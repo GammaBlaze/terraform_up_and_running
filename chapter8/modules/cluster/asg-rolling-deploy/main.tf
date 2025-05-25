@@ -15,6 +15,11 @@ resource "aws_launch_template" "example" {
   # Required when using a launch configuration with an auto scaling group.
   lifecycle {
     create_before_destroy = true
+    # Precondition prevents Terraform apply if the instance type is not part of the AWS Free Tier.
+    precondition {
+      condition     = data.aws_ec2_instance_type.instance.free_tier_eligible
+      error_message = "${var.instance_type} is not part of the AWS Free Tier!"
+    }
   }
 }
 
@@ -37,6 +42,14 @@ resource "aws_autoscaling_group" "example" {
     strategy = "Rolling"
     preferences {
       min_healthy_percentage = 50
+    }
+  }
+
+  # Postcondition prevents Terraform apply if the ASG does not use more than one AZ.
+  lifecycle {
+    postcondition {
+      condition     = length(self.availability_zones) > 1
+      error_message = "You must use more than one AZ for high availability!"
     }
   }
 

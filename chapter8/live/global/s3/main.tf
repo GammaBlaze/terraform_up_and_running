@@ -17,10 +17,10 @@ resource "aws_s3_bucket" "terraform_state" {
 
 # Enable versioning so you can see the full revision history of your
 # state files
-resource "aws_s3_bucket_versioning" "enabled" {
+resource "aws_s3_bucket_versioning" "disabled" {
   bucket = aws_s3_bucket.terraform_state.id
   versioning_configuration {
-    status = "Enabled"
+    status = "Disabled"
   }
 }
 
@@ -54,3 +54,16 @@ resource "aws_dynamodb_table" "terraform_locks" {
     type = "S"
   }
 }
+
+# Uncomment this null_resource to empty the S3 bucket, doesn't work with versioning enabled
+/*resource "null_resource" "empty_bucket" {
+  # Use UUID to force this null_resource to be recreated on every
+  # call to 'terraform apply'
+  triggers = {
+    uuid = uuid()
+  }
+
+  provisioner "local-exec" {
+    command = "aws s3 rm s3://${aws_s3_bucket.terraform_state.id} --recursive"
+  }
+}*/
